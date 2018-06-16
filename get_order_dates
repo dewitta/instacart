@@ -1,0 +1,30 @@
+# MySQL code
+# Step 1 - associate each purchase with an actual date 
+# created by taking a running total of the days since prior orders
+
+# Select relevant data
+# ifnull fixes issue for most recent order, sets date equal to most recent date
+select
+	o.user_id User
+    ,o.order_number
+    ,o2.days_since_prior_order
+    ,sum(o2.days_since_prior_order) running_tot
+    ,ulo.order_dates
+    ,ifnull(subdate(ulo.order_dates, INTERVAL sum(o2.days_since_prior_order) day), ulo.order_dates) date_ordered
+FROM
+	orders o
+
+# Self join: Each order will have all following orders attached to it 1 has 2, 3, 4,5... 2 has 3, 4, 5...    
+left join orders o2 ON o.user_id = o2.user_id AND o.order_number < o2.order_number
+
+# Need the date of the most recent purchase
+left join user_last_order ulo ON o.user_id = ulo.user_id
+
+# See our data grouped by user and order.
+GROUP BY 
+	o.user_id,
+	o.order_number
+    
+ORDER BY
+	o.user_id
+    ,o.order_number
