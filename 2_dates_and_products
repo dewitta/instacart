@@ -1,0 +1,50 @@
+# Step 2 in EDA
+# Adds order dates to each product ordered based on user id and order number
+
+select
+	o.user_id
+    ,o.order_number
+    ,p.product_id
+    ,p.product_name
+    ,od.OrderDate
+from
+	orders o
+    
+join order_to_product_map otpm ON o.order_id = otpm.order_id
+join products p ON otpm.product_id = p.product_id
+
+# Code from step 1 - creating actual order dates
+join (
+	select
+		o.user_id
+		,o.order_number
+		,o2.days_since_prior_order
+		,sum(o2.days_since_prior_order) DaysFromLastOrder
+		,ulo.order_dates LastOrderDate
+		,ifnull(subdate(ulo.order_dates, INTERVAL sum(o2.days_since_prior_order) day), ulo.order_dates) OrderDate
+	FROM
+		orders o
+
+	# Self join: Each order will have all following orders attached to it 1 has 2, 3, 4,5... 2 has 3, 4, 5...    
+	left join orders o2 ON o.user_id = o2.user_id AND o.order_number < o2.order_number
+
+	# Need the date of the most recent purchase
+	left join user_last_order ulo ON o.user_id = ulo.user_id
+
+	# See our data grouped by user and order.
+	GROUP BY 
+		o.user_id,
+		o.order_number
+    
+	ORDER BY
+		o.user_id
+		,o.order_number
+	) 
+    od ON o.user_id = od.user_id and o.order_number = od.order_number
+
+
+order by
+	o.user_id
+    ,p.product_name
+    ,p.product_id
+    ,o.order_id
